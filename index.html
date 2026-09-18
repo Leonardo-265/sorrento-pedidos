@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorrento — Pedidos</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="hdr-main">
+    <!-- Chef SVG -->
+    <svg viewBox="0 0 60 60" width="38" height="38" style="flex-shrink:0">
+      <circle cx="30" cy="30" r="29" fill="#D92829"/>
+      <circle cx="30" cy="30" r="23" fill="#1E8F4E"/>
+      <circle cx="30" cy="30" r="17" fill="#f4e84a"/>
+      <ellipse cx="30" cy="20" rx="9" ry="7" fill="#fff"/>
+      <rect x="22" y="24" width="16" height="5" rx="2" fill="#fff"/>
+      <ellipse cx="30" cy="36" rx="9" ry="11" fill="#f5c98a"/>
+      <ellipse cx="30" cy="38" rx="5" ry="3.5" fill="#e8a96a"/>
+      <circle cx="26" cy="32" r="2" fill="#fff"/><circle cx="34" cy="32" r="2" fill="#fff"/>
+      <circle cx="26.8" cy="32" r="1" fill="#111"/><circle cx="34.8" cy="32" r="1" fill="#111"/>
+      <path d="M25 43 Q30 47 35 43" stroke="#222" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <rect x="24" y="47" width="12" height="8" rx="2" fill="#D92829"/>
+      <rect x="26" y="47" width="8" height="8" rx="2" fill="#fff"/>
+    </svg>
+    <div class="hdr-logo">
+      <span class="pastas">Pastas</span>
+      <span class="sorrento">Sorrento</span>
+    </div>
+    <span class="hora" id="hora" style="margin-left:auto;opacity:.75;font-size:12px"></span>
+    <div class="nav-btns">
+      <button class="nav-btn active" onclick="irA('pedidos',this)">🛒 Nuevo pedido</button>
+      <button class="nav-btn" onclick="irA('historial',this)" id="nav-historial" style="position:relative">📋 Historial<span id="badge-nuevos" style="display:none;position:absolute;top:-6px;right:-6px;background:#ff3b30;color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:1px 6px;min-width:16px;text-align:center">0</span></button>
+      <button class="nav-btn" onclick="irA('cadeteria',this)">🛵 Cadetería</button>
+      <button class="nav-btn" onclick="irA('crm',this)">📊 CRM</button>
+      <button class="nav-btn" onclick="irA('admin',this)">⚙️ Admin</button>
+    </div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-lbl">Hoy</span>
+      <span class="stat-val" id="stat-hoy">— pedidos</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-lbl">Facturado</span>
+      <span class="stat-val" id="stat-total">$—</span>
+    </div>
+    <div class="stat-item" style="border:none;padding:0">
+      <span class="stat-lbl">Último pedido</span>
+      <span class="stat-val" id="stat-ultimo">—</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== VISTA PEDIDOS ===== -->
+<div id="v-pedidos" class="vista activa">
+  <nav class="sidebar">
+    <div class="quick-acc">
+      <div class="quick-acc-title">⭐ Más pedidas</div>
+      <div id="quick-cats"></div>
+    </div>
+    <div class="sidebar-tit" style="margin-top:6px">Todas las categorías</div>
+    <div id="cats-nav"></div>
+  </nav>
+  <main class="main">
+    <div class="banner">
+      <svg viewBox="0 0 60 60" width="56" height="56" style="flex-shrink:0">
+        <circle cx="30" cy="30" r="29" fill="#D92829"/>
+        <circle cx="30" cy="30" r="23" fill="#1E8F4E"/>
+        <circle cx="30" cy="30" r="17" fill="#f4e84a"/>
+        <ellipse cx="30" cy="20" rx="9" ry="7" fill="#fff"/>
+        <rect x="22" y="24" width="16" height="5" rx="2" fill="#fff"/>
+        <ellipse cx="30" cy="36" rx="9" ry="11" fill="#f5c98a"/>
+        <ellipse cx="30" cy="38" rx="5" ry="3.5" fill="#e8a96a"/>
+        <circle cx="26" cy="32" r="2" fill="#fff"/><circle cx="34" cy="32" r="2" fill="#fff"/>
+        <circle cx="26.8" cy="32" r="1" fill="#111"/><circle cx="34.8" cy="32" r="1" fill="#111"/>
+        <path d="M25 43 Q30 47 35 43" stroke="#222" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <rect x="24" y="47" width="12" height="8" rx="2" fill="#D92829"/>
+        <rect x="26" y="47" width="8" height="8" rx="2" fill="#fff"/>
+      </svg>
+      <div class="banner-txt">
+        <h2 id="saludo-banner">¡Buen día! 🍝</h2>
+        <p>¿Qué pedido tomamos hoy?</p>
+      </div>
+      <div style="margin-left:auto">
+        <div class="search-row" style="margin:0">
+          <input type="text" id="buscar" placeholder="🔍 Buscar producto..." autocomplete="off" style="width:220px">
+        </div>
+      </div>
+    </div>
+    <div class="catalogo-area">
+      <div id="cat-hdr" class="cat-hdr">Todos los productos</div>
+      <div id="subcat-tabs" class="subcat-tabs"></div>
+      <div id="grid-prods" class="grid"></div>
+    </div>
+  </main>
+  <aside class="panel">
+    <div class="panel-hdr"><div class="panel-hdr-dot"></div>Pedido actual</div>
+    <div class="cli-form">
+      <div class="frow">
+        <label>Teléfono</label>
+        <div style="position:relative">
+          <input type="tel" id="f-tel" placeholder="Escribí el teléfono..." autocomplete="off" oninput="buscarCliente(this.value)" style="width:100%">
+          <div id="tel-sugg" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--rojo);border-radius:0 0 6px 6px;z-index:50;max-height:140px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>
+        </div>
+      </div>
+      <div class="frow">
+        <label>Tipo de pedido *</label>
+        <div style="display:flex;gap:6px;margin-top:2px">
+          <button type="button" class="tipo-btn active" id="tipo-envio" onclick="setTipo('envio')">🛵 Envío</button>
+          <button type="button" class="tipo-btn" id="tipo-retira" onclick="setTipo('retira')">🏠 Retira</button>
+          <button type="button" class="tipo-btn" id="tipo-mostrador" onclick="setTipo('mostrador')">🏪 Mostrador</button>
+        </div>
+      </div>
+      <div class="frow"><label>Nombre y apellido *</label><input type="text" id="f-nombre" placeholder="Ej: María González"></div>
+      <div class="frow" id="frow-dir"><label id="lbl-dir">Dirección *</label><input type="text" id="f-dir" placeholder="Ej: San Martín 345, 1ºB"></div>
+      <div class="frow" id="frow-horario"><label id="lbl-horario">Horario de entrega</label><input type="text" id="f-horario" placeholder="Ej: 12:30 / lo antes posible"></div>
+      <div class="frow"><label>Forma de pago</label>
+        <select id="f-pago">
+          <option value="">— Seleccionar —</option>
+          <option>Efectivo</option><option>Transferencia</option>
+          <option>Débito</option><option>Crédito</option><option>MercadoPago</option>
+        </select>
+      </div>
+    </div>
+    <div class="items-list" id="items-list">
+      <div class="empty-msg">Sin productos aún.<br>Tocá un producto para agregarlo.</div>
+    </div>
+    <div class="panel-foot">
+      <label style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--gris);margin-bottom:8px;cursor:pointer">
+        <input type="checkbox" id="chk-autoimprimir" checked style="width:14px;height:14px;cursor:pointer">
+        Imprimir ticket automáticamente al confirmar
+      </label>
+      <div class="total-row">
+        <span class="total-lbl">Total del pedido</span>
+        <span class="total-val" id="total">$0</span>
+      </div>
+      <button class="btn-conf" id="btn-conf">✓ Confirmar pedido</button>
+      <button class="btn-limp" id="btn-limp">Limpiar todo</button>
+    </div>
+  </aside>
+</div>
+
+<!-- ===== VISTA HISTORIAL ===== -->
+<div id="v-historial" class="vista">
+  <div class="hist-toolbar">
+    <input type="text" id="hist-buscar" placeholder="🔍 Buscar cliente o dirección...">
+    <select id="hist-estado" style="padding:8px 12px;border:1px solid var(--borde);border-radius:var(--radio);font-size:13px;outline:none;background:#fff">
+      <option value="">Todos los estados</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="enviado">Enviado</option>
+      <option value="cancelado">Cancelado</option>
+    </select>
+    <button class="btn-sec" onclick="cargarHistorial()">↻ Actualizar</button>
+  </div>
+  <div class="hist-stats" id="hist-stats"></div>
+  <div class="pedidos-lista" id="pedidos-lista"><div class="loading">Cargando pedidos...</div></div>
+</div>
+
+<!-- ===== VISTA ADMIN ===== -->
+<div id="v-admin" class="vista">
+  <div class="admin-login" id="admin-login">
+    <div style="font-size:40px">🔐</div>
+    <h2>Panel de Administración</h2>
+    <p style="font-size:13px;color:var(--gris)">Ingresá la contraseña para continuar</p>
+    <input type="password" id="admin-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')loginAdmin()">
+    <button onclick="loginAdmin()">Entrar</button>
+    <p id="pass-err" style="color:#e74c3c;font-size:12px;display:none">Contraseña incorrecta</p>
+  </div>
+  <div class="admin-panel" id="admin-panel">
+    <div class="admin-toolbar">
+      <input type="text" id="adm-buscar" placeholder="🔍 Buscar producto..." oninput="filtrarAdmin()">
+      <select id="adm-cat-filter" onchange="filtrarAdmin()" style="padding:7px 12px;border:1px solid var(--borde);border-radius:var(--radio);font-size:13px;outline:none;background:#fff">
+        <option value="">Todas las categorías</option>
+      </select>
+      <button class="btn-add" onclick="toggleNuevoProd()">＋ Nuevo producto</button>
+      <button class="btn-sec" onclick="cargarAdmin()">↻ Recargar</button>
+    </div>
+    <div style="padding:10px 20px">
+      <div class="nprod-form" id="nprod-form">
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--rojo)">➕ Agregar producto nuevo</div>
+        <div class="nprod-grid">
+          <div><label style="font-size:11px;font-weight:600;color:var(--gris);display:block;margin-bottom:3px">NOMBRE *</label><input type="text" id="np-nombre" placeholder="Ej: PIZZA CAPRESE"></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--gris);display:block;margin-bottom:3px">CATEGORÍA *</label><input type="text" id="np-cat" placeholder="Ej: Pizzas" list="cats-datalist"><datalist id="cats-datalist"></datalist></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--gris);display:block;margin-bottom:3px">SUBCATEGORÍA</label><input type="text" id="np-sub" placeholder="Ej: Pizza Grande"></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--gris);display:block;margin-bottom:3px">PRECIO *</label><input type="number" id="np-precio" placeholder="0" min="0"></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="ebtn save" onclick="guardarNuevoProd()" style="padding:7px 18px;font-size:13px">✓ Guardar</button>
+          <button class="ebtn" onclick="toggleNuevoProd()" style="padding:7px 14px;font-size:13px">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    <div class="admin-table-wrap">
+      <table id="adm-table">
+        <thead><tr>
+          <th>Nombre</th><th>Categoría</th><th>Subcategoría</th><th>Precio</th><th>Estado</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="adm-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VISTA CRM ===== -->
+<div id="v-crm" class="vista" style="flex-direction:column;height:calc(100vh - 80px);overflow:hidden">
+  <div style="display:flex;border-bottom:1px solid var(--borde);background:#fff;flex-shrink:0">
+    <button class="cad-tab active" id="crmtab-dashboard" onclick="crmTab('dashboard',this)">📊 Dashboard</button>
+    <button class="cad-tab" id="crmtab-notas" onclick="crmTab('notas',this)">📝 Notas de clientes</button>
+    <button class="cad-tab" id="crmtab-riesgo" onclick="crmTab('riesgo',this)">⚠️ Clientes en riesgo</button>
+    <button class="cad-tab" id="crmtab-precios" onclick="crmTab('precios',this)">🕐 Historial de precios</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="crm-dashboard" class="cad-panel" style="overflow-y:auto;padding:18px">
+    <!-- Filtros período -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:600;color:var(--gris)">Período:</span>
+      <button class="crm-per active" onclick="setCrmPeriodo(7,this)">7 días</button>
+      <button class="crm-per" onclick="setCrmPeriodo(30,this)">30 días</button>
+      <button class="crm-per" onclick="setCrmPeriodo(90,this)">3 meses</button>
+      <button class="crm-per" onclick="setCrmPeriodo(365,this)">1 año</button>
+      <button class="btn-sec" onclick="exportarPedidosCSV()" style="margin-left:auto;padding:6px 14px">⬇ Exportar CSV</button>
+      <button class="btn-sec" onclick="cargarDashboard()" style="padding:6px 14px">↻ Actualizar</button>
+    </div>
+
+    <!-- Stats cards -->
+    <div id="crm-stats-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px"></div>
+
+    <!-- Dos columnas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <!-- Ventas por día -->
+      <div style="background:#fff;border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Facturación por día de la semana</div>
+        <div id="crm-chart-dias" style="display:flex;align-items:flex-end;gap:6px;height:120px;padding-top:8px"></div>
+        <div id="crm-chart-labels" style="display:flex;gap:6px;margin-top:4px"></div>
+      </div>
+      <!-- Productos más vendidos -->
+      <div style="background:#fff;border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Top 10 productos más pedidos</div>
+        <div id="crm-top-productos"></div>
+      </div>
+    </div>
+
+    <!-- Segunda fila -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+      <!-- Por tipo de pedido -->
+      <div style="background:#fff;border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Por tipo de pedido</div>
+        <div id="crm-tipos"></div>
+      </div>
+      <!-- Por forma de pago -->
+      <div style="background:#fff;border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Por forma de pago</div>
+        <div id="crm-pagos"></div>
+      </div>
+      <!-- Por turno horario -->
+      <div style="background:#fff;border:1px solid var(--borde);border-radius:10px;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--gris);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Por turno horario</div>
+        <div id="crm-turnos"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTAS DE CLIENTES -->
+  <div id="crm-notas" class="cad-panel" style="display:none;overflow-y:auto">
+    <div style="display:grid;grid-template-columns:320px 1fr;height:100%">
+      <!-- Lista clientes con notas -->
+      <div style="border-right:1px solid var(--borde);padding:14px;overflow-y:auto">
+        <div style="margin-bottom:10px">
+          <input type="text" id="crm-notas-buscar" placeholder="🔍 Buscar cliente..." oninput="filtrarClientesNotas()"
+            style="width:100%;padding:7px 10px;border:1px solid var(--borde);border-radius:7px;font-size:13px;outline:none">
+        </div>
+        <div id="crm-clientes-lista"><div class="loading">Cargando...</div></div>
+      </div>
+      <!-- Panel nota -->
+      <div style="padding:20px;background:var(--crema)" id="crm-nota-panel">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--gris);font-size:13px;text-align:center">
+          <div style="font-size:32px;margin-bottom:8px">📝</div>
+          Seleccioná un cliente para ver o editar su nota
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENTES EN RIESGO -->
+  <div id="crm-riesgo" class="cad-panel" style="display:none;overflow-y:auto;padding:18px">
+    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:600;color:var(--gris)">Sin pedir hace más de:</span>
+      <button class="crm-per" onclick="setRiesgoDias(15,this)">15 días</button>
+      <button class="crm-per active" onclick="setRiesgoDias(20,this)">20 días</button>
+      <button class="crm-per" onclick="setRiesgoDias(30,this)">30 días</button>
+      <button class="crm-per" onclick="setRiesgoDias(60,this)">60 días</button>
+      <button class="btn-sec" onclick="exportarRiesgoCSV()" style="margin-left:auto;padding:6px 14px">⬇ Exportar CSV</button>
+      <button class="btn-sec" onclick="cargarClientesRiesgo()" style="padding:6px 14px">↻ Actualizar</button>
+    </div>
+    <div id="crm-riesgo-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px"></div>
+    <div id="crm-riesgo-lista"><div class="loading">Cargando...</div></div>
+  </div>
+
+  <!-- HISTORIAL DE PRECIOS -->
+  <div id="crm-precios" class="cad-panel" style="display:none;overflow-y:auto;padding:18px">
+    <div style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+      <input type="text" id="crm-precio-buscar" placeholder="🔍 Buscar producto..." oninput="filtrarHistorialPrecios()"
+        style="padding:7px 12px;border:1px solid var(--borde);border-radius:7px;font-size:13px;outline:none;width:240px">
+      <span style="font-size:12px;color:var(--gris)" id="crm-precio-count"></span>
+      <button class="btn-sec" onclick="exportarPreciosCSV()" style="margin-left:auto;padding:6px 14px">⬇ Exportar CSV</button>
+    </div>
+    <div id="crm-precio-lista"><div class="loading">Cargando historial...</div></div>
+  </div>
+</div>
+
+<!-- ===== VISTA CADETERÍA ===== -->
+<div id="v-cadeteria" class="vista" style="flex-direction:column;height:calc(100vh - 80px);overflow:hidden">
+
+  <!-- Sub-tabs -->
+  <div style="display:flex;border-bottom:1px solid var(--borde);background:#fff;flex-shrink:0">
+    <button class="cad-tab active" id="ctab-envios" onclick="cadTab('envios',this)">🛵 Envíos activos</button>
+    <button class="cad-tab" id="ctab-nuevo" onclick="cadTab('nuevo',this)">➕ Nuevo envío</button>
+    <button class="cad-tab" id="ctab-cadetes" onclick="cadTab('cadetes',this)">👤 Cadetes</button>
+    <button class="cad-tab" id="ctab-tarifas" onclick="cadTab('tarifas',this)">⚙️ Tarifas y zonas</button>
+  </div>
+
+  <!-- TAB ENVÍOS ACTIVOS -->
+  <div id="cv-envios" class="cad-panel" style="padding:16px;overflow-y:auto">
+    <div id="cad-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px"></div>
+    <div id="envios-lista"><div class="loading">Cargando envíos...</div></div>
+  </div>
+
+  <!-- TAB NUEVO ENVÍO -->
+  <div id="cv-nuevo" class="cad-panel" style="display:none;overflow-y:auto">
+    <div style="display:grid;grid-template-columns:1fr 1fr;height:100%">
+      <div style="padding:16px;border-right:1px solid var(--borde)">
+        <div class="sidebar-tit" style="margin-bottom:12px">Datos del envío</div>
+        <div class="frow"><label>Cliente</label><input type="text" id="cad-cliente" placeholder="Nombre del cliente"></div>
+        <div class="frow"><label>Dirección</label><input type="text" id="cad-dir" placeholder="Dirección de entrega"></div>
+        <div class="frow"><label>Cadete</label>
+          <select id="cad-cadete-sel">
+            <option value="">— Sin asignar —</option>
+          </select>
+        </div>
+        <div class="frow"><label>Zona de entrega</label></div>
+        <div id="zonas-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px"></div>
+        <div style="background:#fff;border:1px solid var(--borde);border-radius:7px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:13px;color:var(--gris)">Costo del viaje</span>
+          <span id="cad-precio-prev" style="font-size:22px;font-weight:800;color:var(--rojo)">—</span>
+        </div>
+        <div class="frow"><label>Observaciones</label><input type="text" id="cad-obs" placeholder="Opcional"></div>
+        <button class="btn-conf" onclick="guardarEnvio()" style="margin-top:4px">🛵 Registrar envío</button>
+      </div>
+      <div style="padding:16px;background:var(--crema)">
+        <div class="sidebar-tit" style="margin-bottom:12px">Cadetes disponibles ahora</div>
+        <div id="cadetes-disponibles"></div>
+        <div class="sidebar-tit" style="margin-top:16px;margin-bottom:10px">Tarifas vigentes</div>
+        <div id="tarifas-preview"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB CADETES -->
+  <div id="cv-cadetes" class="cad-panel" style="display:none;overflow-y:auto">
+    <div style="display:grid;grid-template-columns:1fr 1fr;height:100%">
+      <div style="padding:16px;border-right:1px solid var(--borde)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="sidebar-tit" style="margin:0">Cadetes registrados</div>
+          <button class="btn-add" onclick="mostrarFormCadete()">+ Agregar</button>
+        </div>
+        <div id="cadetes-lista"></div>
+        <!-- Form nuevo/editar cadete -->
+        <div id="form-cadete" style="display:none;background:var(--crema);border:1px solid var(--borde);border-radius:8px;padding:12px;margin-top:12px">
+          <div style="font-weight:700;font-size:13px;color:var(--rojo);margin-bottom:10px" id="form-cadete-titulo">Nuevo cadete</div>
+          <input type="hidden" id="cad-edit-id">
+          <div class="frow"><label>Nombre completo *</label><input type="text" id="cad-edit-nombre" placeholder="Ej: Lucas Rodríguez"></div>
+          <div class="frow"><label>Teléfono</label><input type="tel" id="cad-edit-tel" placeholder="Ej: 2914 123456"></div>
+          <div class="frow"><label>Turno</label><input type="text" id="cad-edit-turno" placeholder="Ej: Mañana"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div class="frow"><label>Hora inicio</label><input type="time" id="cad-edit-inicio"></div>
+            <div class="frow"><label>Hora fin</label><input type="time" id="cad-edit-fin"></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="ebtn save" onclick="guardarCadete()">✓ Guardar</button>
+            <button class="ebtn" onclick="document.getElementById('form-cadete').style.display='none'">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:16px;background:var(--crema)">
+        <div class="sidebar-tit" style="margin-bottom:12px">Envíos del día por cadete</div>
+        <div id="cadetes-stats-tabla"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB TARIFAS -->
+  <div id="cv-tarifas" class="cad-panel" style="display:none;overflow-y:auto">
+    <div style="display:grid;grid-template-columns:1fr 1fr;height:100%">
+      <div style="padding:16px;border-right:1px solid var(--borde)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="sidebar-tit" style="margin:0">Zonas y precios</div>
+          <button class="btn-add" onclick="mostrarFormZona()">+ Nueva zona</button>
+        </div>
+        <div id="zonas-lista"></div>
+        <!-- Form nueva zona -->
+        <div id="form-zona" style="display:none;background:var(--crema);border:1px solid var(--borde);border-radius:8px;padding:12px;margin-top:12px">
+          <div style="font-weight:700;font-size:13px;color:var(--rojo);margin-bottom:10px" id="form-zona-titulo">Nueva zona</div>
+          <input type="hidden" id="zona-edit-id">
+          <div class="frow"><label>Nombre *</label><input type="text" id="zona-edit-nombre" placeholder="Ej: Zona 5"></div>
+          <div class="frow"><label>Descripción</label><input type="text" id="zona-edit-desc" placeholder="Ej: Más de 50 cuadras"></div>
+          <div class="frow"><label>Precio *</label><input type="number" id="zona-edit-precio" placeholder="0" min="0"></div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="ebtn save" onclick="guardarZona()">✓ Guardar</button>
+            <button class="ebtn" onclick="document.getElementById('form-zona').style.display='none'">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:16px;background:var(--crema)">
+        <div class="sidebar-tit" style="margin-bottom:12px">Resumen del panel</div>
+        <div id="cad-resumen"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACIÓN -->
+<div class="modal-bg" id="modal-conf">
+  <div class="modal">
+    <h2>✅ Pedido confirmado</h2>
+    <div class="modal-sub" id="mconf-sub"></div>
+    <div class="ticket" id="mconf-ticket"></div>
+    <div class="modal-acts">
+      <button class="mbtn impr" onclick="imprimirTicket()">🖨️ Imprimir</button>
+      <button class="mbtn" style="background:#25D366;color:#fff" id="btn-wsp" onclick="enviarWhatsApp()">📲 WhatsApp</button>
+      <button class="mbtn cerr" onclick="cerrarConf()">Nuevo pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE PEDIDO -->
+<div class="modal-bg" id="modal-det">
+  <div class="modal modal-det">
+    <h2 id="mdet-titulo"></h2>
+    <div class="ticket" id="mdet-ticket"></div>
+    <div class="modal-acts" style="flex-wrap:wrap;gap:6px">
+      <button class="mbtn est" id="btn-est-env" onclick="cambiarEstado('enviado')">📦 Marcar enviado</button>
+      <button class="mbtn" style="background:#2980b9;color:#fff" onclick="editarPedido()">✏️ Editar</button>
+      <button class="mbtn impr" onclick="imprimirDetalle()">🖨️ Imprimir</button>
+      <button class="mbtn" style="background:#e74c3c;color:#fff" onclick="cambiarEstado('cancelado')">✕ Cancelar</button>
+      <button class="mbtn" style="background:#7f8c8d;color:#fff" onclick="eliminarPedido()">🗑️ Eliminar</button>
+      <button class="mbtn cerr" onclick="cerrarDet()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="print-area"></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

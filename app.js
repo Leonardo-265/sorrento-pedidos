@@ -91,7 +91,85 @@ function tick() {
   const el = document.getElementById('saludo-banner');
   if (el) el.textContent = sal;
 }
+
+async function cargarClima() {
+  const chip = document.getElementById('weather-chip');
+  if (!chip) return;
+
+  const defaultCoords = { lat: -38.7176, lon: -62.2655 };
+
+  async function obtenerCoordenadas() {
+    if (navigator.geolocation) {
+      return await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          () => reject(new Error('geolocation denied')),
+          { timeout: 8000, enableHighAccuracy: false }
+        );
+      });
+    }
+    throw new Error('geolocation unavailable');
+  }
+
+  async function obtenerCoordenadasPorIp() {
+    try {
+      const res = await fetch('https://ipinfo.io/json', { headers: { Accept: 'application/json' } });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || !data.loc) return null;
+      const [lat, lon] = data.loc.split(',').map(Number);
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        return { lat, lon };
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  try {
+    const coords = await obtenerCoordenadas().catch(() => obtenerCoordenadasPorIp()).catch(() => defaultCoords);
+    const lat = coords?.lat ?? defaultCoords.lat;
+    const lon = coords?.lon ?? defaultCoords.lon;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,rain,weather_code&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('clima no disponible');
+    const data = await res.json();
+    const temp = Math.round(data.current.temperature_2m);
+    const precip = (data.current.precipitation ?? 0) || (data.current.rain ?? 0) || 0;
+    const hora = new Date().getHours();
+    const esNoche = hora < 6 || hora >= 20;
+    const lluvia = precip > 0.2;
+    const tormenta = precip > 1.5;
+
+    let icon = '☀️';
+    let label = `${temp}°C`;
+
+    if (esNoche && !lluvia) {
+      icon = '🌙';
+    } else if (lluvia) {
+      icon = tormenta ? '⛈️' : '🌧️';
+      label = `${temp}°C · Lloviendo`;
+    } else if (!esNoche && precip > 0) {
+      icon = '🌦️';
+      label = `${temp}°C · Nublado`;
+    }
+
+    chip.textContent = `${icon} ${label}`;
+    chip.classList.toggle('llueve', lluvia);
+    chip.classList.toggle('noche', esNoche && !lluvia);
+    chip.classList.toggle('nublado', !lluvia && !esNoche && precip > 0);
+  } catch (e) {
+    const hora = new Date().getHours();
+    const esNoche = hora < 6 || hora >= 20;
+    chip.textContent = `${esNoche ? '🌙' : '☀️'} 20°C`;
+    chip.classList.remove('llueve', 'noche', 'nublado');
+    if (esNoche) chip.classList.add('noche');
+  }
+}
+
 tick(); setInterval(tick, 30000);
+cargarClima(); setInterval(cargarClima, 1800000);
 
 async function actualizarStats() {
   try {

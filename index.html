@@ -17,7 +17,10 @@
       <span class="pastas">Pastas</span>
       <span class="sorrento">Sorrento</span>
     </div>
-    <span class="hora" id="hora" style="margin-left:auto;opacity:.75;font-size:12px"></span>
+    <div class="weather-wrap">
+      <span class="hora" id="hora"></span>
+      <div class="weather-chip" id="weather-chip" aria-live="polite">Cargando clima...</div>
+    </div>
     <div class="nav-btns">
       <button class="nav-btn active" onclick="irA('pedidos',this)">🛒 Nuevo pedido</button>
       <button class="nav-btn" onclick="irA('historial',this)" id="nav-historial" style="position:relative">📋 Historial<span id="badge-nuevos" style="display:none;position:absolute;top:-6px;right:-6px;background:#ff3b30;color:#fff;font-size:10px;font-weight:800;border-radius:10px;padding:1px 6px;min-width:16px;text-align:center">0</span></button>

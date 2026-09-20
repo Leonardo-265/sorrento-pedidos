@@ -38,15 +38,16 @@ async function cargarProductos() {
     if (data && data.length > 0) {
       productos = data.map(p => ({
         id: p.id, n: p.nombre, c: p.categoria,
-        s: p.subcategoria || '', p: p.precio, activo: p.activo
+        s: p.subcategoria || '', p: p.precio, activo: p.activo,
+        en_promo: p.en_promo || false,
+        precio_promo: p.precio_promo || 0,
+        stock_promo: p.stock_promo || 0
       }));
     } else {
-      // Cargar desde JS inicial y migrar a Supabase
       await migrarProductos();
     }
   } catch(e) {
-    // Supabase no disponible: usar locales
-    productos = PRODUCTOS_INIT.map(p => ({...p, id: null, activo: true}));
+    productos = PRODUCTOS_INIT.map(p => ({...p, id: null, activo: true, en_promo: false, precio_promo: 0, stock_promo: 0}));
     toast('Modo offline — productos locales', 'err');
   }
   renderCats();
@@ -176,10 +177,23 @@ function irA(vista, btn) {
 // ─── VISTA PEDIDOS ─────────────────────────────────────────────
 function fmt(n) { return '$' + n.toLocaleString('es-AR'); }
 
+function precioEfectivo(prod) {
+  return (prod.en_promo && prod.stock_promo > 0) ? prod.precio_promo : prod.p;
+}
+function estaEnPromoActiva(prod) {
+  return prod.en_promo && prod.stock_promo > 0;
+}
+
 function renderCats() {
   const el = document.getElementById('cats-nav');
   el.innerHTML = '';
-  const cats = [...new Set(productos.map(p => p.c))].sort();
+
+  const counts = {};
+  productos.forEach(p => { counts[p.c] = (counts[p.c] || 0) + 1; });
+  const cats = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([cat]) => cat);
+
   cats.forEach(c => {
     const b = document.createElement('button');
     b.className = 'cat-btn'; b.textContent = c;
@@ -188,8 +202,6 @@ function renderCats() {
   });
 
   // Quick access — top 5 categories by product count
-  const counts = {};
-  productos.forEach(p => { counts[p.c] = (counts[p.c]||0) + 1; });
   const top5 = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const qel = document.getElementById('quick-cats');
   if (qel) {
@@ -268,16 +280,17 @@ function renderProductos(filtro='') {
   lista.forEach(prod => {
     const d = document.createElement('div');
     d.className = 'pcard';
-    const conDesc = tieneDescuentoMiercoles(prod) && prod.p > 0;
-    const precioFinal = precioConDescuento(prod);
+    const enPromo = estaEnPromoActiva(prod);
+    const precioMostrar = precioEfectivo(prod);
     d.innerHTML = `<div class="pnombre">${prod.n}</div>
     ${prod.s ? '<div class="psub">'+prod.s+'</div>' : ''}
-    ${conDesc
+    ${enPromo
       ? `<div class="pprecio" style="display:flex;align-items:baseline;gap:6px">
            <span style="text-decoration:line-through;color:var(--gris);font-size:11px;font-weight:400">${fmt(prod.p)}</span>
-           <span>${fmt(precioFinal)}</span>
-           <span style="background:var(--rojo);color:#fff;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px">-25%</span>
-         </div>`
+           <span>${fmt(precioMostrar)}</span>
+           <span style="background:var(--rojo);color:#fff;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:4px">PROMO</span>
+         </div>
+         <div style="font-size:10px;color:var(--gris);margin-top:2px">Quedan ${prod.stock_promo}</div>`
       : `<div class="pprecio${prod.p === 0 ? ' inc' : ''}">${prod.p > 0 ? fmt(prod.p) : 'Incluido'}</div>`}`;
     d.onclick = () => agregar(prod);
     el.appendChild(d);
@@ -295,7 +308,7 @@ document.getElementById('buscar').addEventListener('input', e => {
 
 function agregar(prod) {
   const esPorPeso = prod.c === 'Pastas Crudas' && /TALLARIN|ÑOQUIS|NOQUIS|FIDEOS RELLENOS|FUCCILLI|MACARRON/i.test(prod.n);
-  const precioFinal = precioConDescuento(prod);
+  const precioFinal = estaEnPromoActiva(prod) ? prod.precio_promo : precioConDescuento(prod);
   const idx = pedido.findIndex(i => i.n === prod.n && i.p === precioFinal && i.s === prod.s);
   if (idx >= 0) {
     if (esPorPeso) pedido[idx].gramos = (pedido[idx].gramos || 0) + 500;
@@ -304,7 +317,7 @@ function agregar(prod) {
     pedido.push({...prod, p: precioFinal, qty: 1, gramos: esPorPeso ? 500 : null, porPeso: esPorPeso});
   }
   renderPedido();
-  toast(tieneDescuentoMiercoles(prod) ? 'Agregado con 25% off: ' + prod.n : 'Agregado: ' + prod.n, 'ok');
+  toast(estaEnPromoActiva(prod) ? '🏷️ Agregado en promo: ' + prod.n : (tieneDescuentoMiercoles(prod) ? 'Agregado con 25% off: ' + prod.n : 'Agregado: ' + prod.n), 'ok');
 }
 
 function cambiarQty(idx, delta) {
@@ -964,11 +977,15 @@ function renderAdminTabla(lista) {
     const tr = document.createElement('tr');
     tr.className = p.activo ? '' : 'inactivo';
     tr.id = 'row-' + p.id;
+    const promoTag = p.en_promo
+      ? `<span class="ped-estado est-enviado">Promo (${p.stock_promo||0})</span>`
+      : '<span style="color:var(--gris);font-size:11px">—</span>';
     tr.innerHTML = `
       <td id="td-n-${p.id}">${p.nombre}</td>
       <td id="td-c-${p.id}">${p.categoria}</td>
       <td id="td-s-${p.id}">${p.subcategoria||''}</td>
       <td id="td-p-${p.id}">${fmt(p.precio)}</td>
+      <td id="td-promo-${p.id}">${promoTag}</td>
       <td><span class="ped-estado ${p.activo?'est-enviado':'est-cancelado'}">${p.activo?'Activo':'Inactivo'}</span></td>
       <td class="td-edit">
         <button class="ebtn" onclick="editarFila('${p.id}')">✏️ Editar</button>
@@ -981,13 +998,19 @@ function renderAdminTabla(lista) {
 function editarFila(id) {
   const p = adminProds.find(x => x.id === id);
   if (!p) return;
-  // Reemplazar celdas con inputs
   document.getElementById('td-n-'+id).innerHTML = `<input class="edit-input" style="width:150px" id="ei-n-${id}" value="${p.nombre.replace(/"/g,'&quot;')}">`;
   document.getElementById('td-c-'+id).innerHTML = `<input class="edit-cat" id="ei-c-${id}" value="${p.categoria.replace(/"/g,'&quot;')}">`;
   document.getElementById('td-s-'+id).innerHTML = `<input class="edit-cat" id="ei-s-${id}" value="${(p.subcategoria||'').replace(/"/g,'&quot;')}">`;
   document.getElementById('td-p-'+id).innerHTML = `<input class="edit-input" type="number" id="ei-p-${id}" value="${p.precio}" min="0">`;
-  const tdAct = document.getElementById('row-'+id).cells[4];
-  const tdEdit = document.getElementById('row-'+id).cells[5];
+  document.getElementById('td-promo-'+id).innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:140px">
+      <label style="font-size:11px;display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="ei-enpromo-${id}" ${p.en_promo?'checked':''}> En promo
+      </label>
+      <input class="edit-input" type="number" id="ei-precpromo-${id}" placeholder="Precio promo" value="${p.precio_promo||0}" min="0" style="width:100px">
+      <input class="edit-input" type="number" id="ei-stockpromo-${id}" placeholder="Stock" value="${p.stock_promo||0}" min="0" style="width:100px">
+    </div>`;
+  const tdEdit = document.getElementById('row-'+id).cells[6];
   tdEdit.innerHTML = `<button class="ebtn save" onclick="guardarFila('${id}')">✓ Guardar</button><button class="ebtn" onclick="cargarAdmin()">Cancelar</button>`;
 }
 
@@ -996,17 +1019,19 @@ async function guardarFila(id) {
   const categoria = document.getElementById('ei-c-'+id).value.trim();
   const subcategoria = document.getElementById('ei-s-'+id).value.trim();
   const precio = parseInt(document.getElementById('ei-p-'+id).value) || 0;
+  const en_promo = document.getElementById('ei-enpromo-'+id).checked;
+  const precio_promo = parseInt(document.getElementById('ei-precpromo-'+id).value) || 0;
+  const stock_promo = parseInt(document.getElementById('ei-stockpromo-'+id).value) || 0;
   if (!nombre || !categoria) { toast('Nombre y categoría requeridos', 'err'); return; }
-  // Guardar precio anterior para historial
+  if (en_promo && precio_promo <= 0) { toast('Ingresá un precio de promo válido', 'err'); return; }
   const prodAnterior = adminProds.find(x => x.id === id);
   const precioAnterior = prodAnterior?.precio || 0;
   try {
     await sbFetch('/rest/v1/productos?id=eq.'+id, {
       method: 'PATCH',
       prefer: 'return=minimal',
-      body: JSON.stringify({nombre, categoria, subcategoria, precio})
+      body: JSON.stringify({nombre, categoria, subcategoria, precio, en_promo, precio_promo, stock_promo})
     });
-    // Registrar en historial si el precio cambió
     if (precio !== precioAnterior) {
       try {
         await sbFetch('/rest/v1/historial_precios', {
@@ -1014,7 +1039,7 @@ async function guardarFila(id) {
           prefer: 'return=minimal',
           body: JSON.stringify([{producto_id: id, producto_nombre: nombre, producto_categoria: categoria, precio_anterior: precioAnterior, precio_nuevo: precio}])
         });
-      } catch(e) { /* historial_precios table may not exist yet */ }
+      } catch(e) {}
     }
     toast('Producto actualizado ✓', 'ok');
     cargarAdmin();
